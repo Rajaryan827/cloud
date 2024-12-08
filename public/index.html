@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; script-src 'self' https: 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com; connect-src 'self' https: wss: http://localhost:*;">
+    <title>Image Upload & Gallery</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #2c3e50;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --background-color: #f5f7fa;
+            --card-background: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--secondary-color);
+            line-height: 1.6;
+        }
+
+        .navbar {
+            background-color: var(--card-background);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            color: var(--secondary-color);
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 5rem auto 2rem;
+            padding: 1rem;
+        }
+
+        .main-content {
+            display: none;
+        }
+
+        .main-content.active {
+            display: block;
+        }
+
+        .upload-card {
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--primary-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            background-color: rgba(74, 144, 226, 0.1);
+        }
+
+        .upload-area.dragover {
+            background-color: rgba(74, 144, 226, 0.2);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .preview-area {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .url-container {
+            position: relative;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            background-color: white;
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+
+        .url-box {
+            flex: 1;
+            word-break: break-all;
+            padding-right: 2.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .copy-button {
+            position: static;
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+        }
+
+        .copy-button:hover {
+            color: var(--secondary-color);
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            padding: 1rem;
+        }
+
+        .gallery-item {
+            background: var(--card-background);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .gallery-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .gallery-info {
+            padding: 1rem;
+        }
+
+        .gallery-url {
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            word-break: break-all;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 1001;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            margin: auto;
+            display: block;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+
+            .nav-links {
+                gap: 0.5rem;
+            }
+
+            .nav-link {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .upload-card {
+                padding: 1rem;
+            }
+
+            .gallery {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-logo {
+                font-size: 1.2rem;
+            }
+        }
+
+        .gallery-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .delete-button {
+            background: none;
+            border: none;
+            color: var(--error-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            transition: color 0.3s;
+        }
+
+        .delete-button:hover {
+            color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">ImageUploader</div>
+            <div class="nav-links">
+                <a href="#" class="nav-link active" data-page="upload">Upload</a>
+                <a href="#" class="nav-link" data-page="gallery">Gallery</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="uploadPage" class="main-content active">
+            <div class="upload-card">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <input type="file" id="fileInput" class="file-input" accept="image/*">
+                    <p>Drag & Drop your image here or</p>
+                    <button class="nav-link" id="chooseFileBtn">Choose File</button>
+                </div>
+
+                <div id="message"></div>
+
+                <div class="preview-area" id="previewArea">
+                    <img id="previewImage" class="preview-image" alt="Preview">
+                    <div class="url-container">
+                        <div id="imageUrl" class="url-box"></div>
+                        <button class="copy-button" id="copyButton">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="upload-details">
+                        <p>Public ID: <span id="publicId"></span></p>
+                        <p>Format: <span id="format"></span></p>
+                        <p>Dimensions: <span id="dimensions"></span></p>
+                        <p>Uploaded: <span id="timestamp"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="galleryPage" class="main-content">
+            <div class="gallery" id="imageGallery"></div>
+        </div>
+    </div>
+
+    <div id="imageModal" class="modal">
+        <span class="modal-close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import { getDatabase, ref, push, set, get, remove } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+    
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyCco2X67PqDe_Mrfgy6WlzvKqDQJsVevoE",
+                authDomain: "ecommerce-638a3.firebaseapp.com",
+                databaseURL: "https://ecommerce-638a3-default-rtdb.firebaseio.com",
+                projectId: "ecommerce-638a3",
+                storageBucket: "ecommerce-638a3.appspot.com",
+                messagingSenderId: "990210313698",
+                appId: "1:990210313698:web:b73fd0b88f477edb47fdbb",
+                measurementId: "G-64WN7NPKYR"
+            };
+    
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const database = getDatabase(app);
+    
+            // DOM Elements with null checks
+            const elements = {
+                uploadArea: document.getElementById('uploadArea'),
+                fileInput: document.getElementById('fileInput'),
+                message: document.getElementById('message'),
+                previewArea: document.getElementById('previewArea'),
+                previewImage: document.getElementById('previewImage'),
+                imageUrl: document.getElementById('imageUrl'),
+                copyButton: document.getElementById('copyButton'),
+                publicId: document.getElementById('publicId'),
+                format: document.getElementById('format'),
+                dimensions: document.getElementById('dimensions'),
+                timestamp: document.getElementById('timestamp'),
+                imageGallery: document.getElementById('imageGallery'),
+                modal: document.getElementById('imageModal'),
+                modalImage: document.getElementById('modalImage'),
+                modalClose: document.querySelector('.modal-close')
+            };
+    
+            // Validate essential elements exist
+            const requiredElements = ['uploadArea', 'fileInput', 'message'];
+            const missingElements = requiredElements.filter(id => !elements[id]);
+            if (missingElements.length > 0) {
+                console.error('Missing required elements:', missingElements);
+                return;
+            }
+    
+            // Navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const page = e.target.dataset.page;
+                    
+                    // Update active content
+                    document.querySelectorAll('.main-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    const targetPage = document.getElementById(`${page}Page`);
+                    if (targetPage) {
+                        targetPage.classList.add('active');
+                    }
+    
+                    // Update active nav link
+                    document.querySelectorAll('.nav-link').forEach(navLink => {
+                        navLink.classList.remove('active');
+                    });
+                    e.target.classList.add('active');
+    
+                    if (page === 'gallery') {
+                        loadGallery();
+                    }
+                });
+            });
+    
+            // Drag and drop handlers
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                elements.uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+    
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+    
+            ['dragenter', 'dragover'].forEach(eventName => {
+                elements.uploadArea.addEventListener(eventName, () => {
+                    elements.uploadArea.classList.add('dragover');
+                });
+            });
+    
+            ['dragleave', 'drop'].forEach(eventName => {
+                elements.uploadArea.addEventListener(eventName, () => {
+                    elements.uploadArea.classList.remove('dragover');
+                });
+            });
+    
+            // File handling
+            elements.uploadArea.addEventListener('drop', handleDrop);
+            elements.fileInput.addEventListener('change', () => handleFiles(elements.fileInput.files));
+            
+            // Add click handlers for upload area and choose file button
+            elements.uploadArea.addEventListener('click', (e) => {
+                if (e.target === elements.uploadArea || e.target.tagName === 'I' || e.target.tagName === 'P') {
+                    elements.fileInput.click();
+                }
+            });
+
+            document.getElementById('chooseFileBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                elements.fileInput.click();
+            });
+    
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                handleFiles(dt.files);
+            }
+    
+            function handleFiles(files) {
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type.startsWith('image/')) {
+                        // Switch to upload tab if not active
+                        const uploadPage = document.getElementById('uploadPage');
+                        if (!uploadPage.classList.contains('active')) {
+                            document.querySelectorAll('.main-content').forEach(content => {
+                                content.classList.remove('active');
+                            });
+                            uploadPage.classList.add('active');
+                            
+                            // Update navigation active state
+                            document.querySelectorAll('.nav-link').forEach(navLink => {
+                                navLink.classList.remove('active');
+                            });
+                            document.querySelector('[data-page="upload"]').classList.add('active');
+                        }
+
+                        uploadFile(file);
+                        showPreview(file);
+                    } else {
+                        showMessage('Please select an image file.', 'error');
+                    }
+                }
+            }
+    
+            function showPreview(file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    if (elements.previewImage && elements.previewArea) {
+                        elements.previewImage.src = e.target.result;
+                        elements.previewArea.style.display = 'block';
+                        // Scroll to preview area
+                        elements.previewArea.scrollIntoView({ behavior: 'smooth' });
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+    
+            async function uploadFile(file) {
+                showMessage('Uploading...', 'info');
+                const formData = new FormData();
+                formData.append('image', file);
+    
+                try {
+                    const response = await fetch('http://localhost:3000/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+    
+                    const result = await response.json();
+    
+                    if (result.success) {
+                        showMessage('Upload successful!', 'success');
+                        updateUploadDetails(result);
+                        
+                        // Save to Firebase
+                        const imagesRef = ref(database, 'images');
+                        const newImageRef = push(imagesRef);
+                        await set(newImageRef, {
+                            url: result.url,
+                            publicId: result.public_id,
+                            format: result.format,
+                            dimensions: `${result.width}x${result.height}`,
+                            timestamp: Date.now() // Use current timestamp instead of result.timestamp
+                        });
+                    } else {
+                        showMessage(`Upload failed: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    showMessage('Upload failed: Network error', 'error');
+                    console.error('Error:', error);
+                }
+            }
+    
+            function updateUploadDetails(result) {
+                if (elements.imageUrl) elements.imageUrl.textContent = result.url;
+                if (elements.publicId) elements.publicId.textContent = result.public_id;
+                if (elements.format) elements.format.textContent = result.format;
+                if (elements.dimensions) elements.dimensions.textContent = `${result.width}x${result.height}`;
+                if (elements.timestamp) elements.timestamp.textContent = result.timestamp;
+                if (elements.previewArea) elements.previewArea.style.display = 'block';
+            }
+    
+            function showMessage(text, type) {
+                if (elements.message) {
+                    elements.message.innerHTML = `<div class="${type}">${text}</div>`;
+                    setTimeout(() => {
+                        elements.message.innerHTML = '';
+                    }, 3000);
+                }
+            }
+    
+            // Copy URL functionality
+            if (elements.copyButton) {
+                elements.copyButton.addEventListener('click', async () => {
+                    try {
+                        if (elements.imageUrl) {
+                            await navigator.clipboard.writeText(elements.imageUrl.textContent);
+                            showMessage('URL copied to clipboard!', 'success');
+                        }
+                    } catch (err) {
+                        showMessage('Failed to copy URL', 'error');
+                    }
+                });
+            }
+    
+            // Gallery functionality
+            async function loadGallery() {
+                if (!elements.imageGallery) return;
+    
+                try {
+                    const imagesRef = ref(database, 'images');
+                    const snapshot = await get(imagesRef);
+                    const images = snapshot.val();
+                    elements.imageGallery.innerHTML = '';
+    
+                    if (images) {
+                        Object.entries(images).forEach(([key, image]) => {
+                            const galleryItem = createGalleryItem(image, key);
+                            elements.imageGallery.appendChild(galleryItem);
+                        });
+                    } else {
+                        elements.imageGallery.innerHTML = '<p class="no-images">No images uploaded yet</p>';
+                    }
+                } catch (error) {
+                    console.error('Error loading gallery:', error);
+                    elements.imageGallery.innerHTML = '<p class="error">Error loading gallery</p>';
+                }
+            }
+    
+            function createGalleryItem(image, key) {
+                const galleryItem = document.createElement('div');
+                galleryItem.className = 'gallery-item';
+                galleryItem.innerHTML = `
+                    <img src="${image.url}" alt="Uploaded Image" class="gallery-image">
+                    <div class="gallery-info">
+                        <div class="gallery-url">${image.url}</div>
+                        <div class="gallery-actions">
+                            <button class="copy-button" data-url="${image.url}">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="view-button" data-url="${image.url}">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                            <button class="delete-button" data-key="${key}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="gallery-details">
+                            <p>Format: ${image.format}</p>
+                            <p>Dimensions: ${image.dimensions}</p>
+                            <p>Uploaded: ${new Date(image.timestamp).toLocaleString()}</p>
+                        </div>
+                    </div>
+                `;
+    
+                // Add event listeners
+                const copyBtn = galleryItem.querySelector('.copy-button');
+                const viewBtn = galleryItem.querySelector('.view-button');
+                const deleteBtn = galleryItem.querySelector('.delete-button');
+    
+                copyBtn.addEventListener('click', () => copyGalleryUrl(image.url));
+                viewBtn.addEventListener('click', () => openModal(image.url));
+                deleteBtn.addEventListener('click', () => deleteImage(key, galleryItem));
+    
+                return galleryItem;
+            }
+    
+            async function copyGalleryUrl(url) {
+                try {
+                    await navigator.clipboard.writeText(url);
+                    showMessage('URL copied to clipboard!', 'success');
+                } catch (err) {
+                    showMessage('Failed to copy URL', 'error');
+                }
+            }
+    
+            // Modal functionality
+            function openModal(imageUrl) {
+                if (elements.modal && elements.modalImage) {
+                    elements.modal.style.display = 'block';
+                    elements.modalImage.src = imageUrl;
+                }
+            }
+    
+            if (elements.modalClose) {
+                elements.modalClose.addEventListener('click', () => {
+                    if (elements.modal) {
+                        elements.modal.style.display = 'none';
+                    }
+                });
+            }
+    
+            // Close modal when clicking outside
+            window.addEventListener('click', (event) => {
+                if (event.target === elements.modal) {
+                    elements.modal.style.display = 'none';
+                }
+            });
+    
+            // Initial load
+            if (window.location.hash === '#gallery') {
+                document.querySelector('[data-page="gallery"]')?.click();
+            }
+    
+            async function deleteImage(key, galleryItem) {
+                if (confirm('Are you sure you want to delete this image?')) {
+                    try {
+                        const imageRef = ref(database, `images/${key}`);
+                        await remove(imageRef);
+                        galleryItem.remove();
+                        showMessage('Image deleted successfully!', 'success');
+                    } catch (error) {
+                        console.error('Error deleting image:', error);
+                        showMessage('Failed to delete image', 'error');
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
