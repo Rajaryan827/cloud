@@ -2,24 +2,27 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
+const path = require('path');
 require('dotenv').config();
 
 // Cloudinary Configuration
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET
-  });
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET
+});
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(fileUpload());
 app.use(express.json());
-app.use(express.static('public'));
+
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Upload route
 app.post('/upload', async (req, res) => {
@@ -39,7 +42,7 @@ app.post('/upload', async (req, res) => {
 
     // Upload to Cloudinary using upload preset
     const result = await cloudinary.uploader.upload(dataURI, {
-      upload_preset: 'ml_default',
+      upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
       resource_type: 'auto'
     });
 
@@ -59,6 +62,11 @@ app.post('/upload', async (req, res) => {
       message: error.message || 'Upload failed' 
     });
   }
+});
+
+// Catch all route to serve index.html for any unmatched routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
