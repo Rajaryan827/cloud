@@ -368,7 +368,8 @@
             // Initialize Firebase
             const app = initializeApp(firebaseConfig);
             const database = getDatabase(app);
-    
+            const API_URL = window.location.origin;
+
             // DOM Elements with null checks
             const elements = {
                 uploadArea: document.getElementById('uploadArea'),
@@ -507,6 +508,7 @@
             }
     
             async function uploadFile(file) {
+
                 showMessage('Uploading...', 'info');
                 const formData = new FormData();
                 formData.append('image', file);
@@ -516,6 +518,17 @@
                         method: 'POST',
                         body: formData
                     });
+
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`${API_URL}/upload`, {  // Note the backticks
+      method: 'POST',
+      body: formData
+    });
+
+
     
                     const result = await response.json();
     
