@@ -368,7 +368,11 @@
             // Initialize Firebase
             const app = initializeApp(firebaseConfig);
             const database = getDatabase(app);
-    
+            // Add this at the beginning of your JavaScript
+const API_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000' 
+  : 'https://cloudinary-rose.vercel.app';
+
             // DOM Elements with null checks
             const elements = {
                 uploadArea: document.getElementById('uploadArea'),
@@ -512,7 +516,7 @@
                 formData.append('image', file);
     
                 try {
-                    const response = await fetch('http://localhost:3000/upload', {
+                    const response = await fetch('${API_URL}/upload', {
                         method: 'POST',
                         body: formData
                     });
