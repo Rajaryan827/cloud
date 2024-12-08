@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; script-src 'self' https: 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com; connect-src 'self' https: wss: http://localhost:*;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: 'unsafe-inline' 'unsvercelafe-eval'; script-src 'self' https: 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com; connect-src 'self' https: wss: http://localhost:*;">
     <title>Image Upload & Gallery</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -508,6 +508,17 @@
             }
     
             async function uploadFile(file) {
+
+                showMessage('Uploading...', 'info');
+                const formData = new FormData();
+                formData.append('image', file);
+    
+                try {
+                    const response = await fetch('https://cloudinary-rose.vercel.app/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
   try {
     const formData = new FormData();
     formData.append('image', file);
@@ -516,6 +527,7 @@
       method: 'POST',
       body: formData
     });
+
 
     
                     const result = await response.json();
